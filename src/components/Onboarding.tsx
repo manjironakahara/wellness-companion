@@ -134,7 +134,10 @@ const Onboarding = ({ step, transcript, setTranscript, isListening, toggleListen
           {/* Continue / Submit */}
           {transcript && (
             <button
-              onClick={onNext}
+              onClick={() => {
+                if (isListening) toggleListening();
+                onNext();
+              }}
               className="w-14 h-14 rounded-full flex items-center justify-center onboarding-btn-continue transition-all active:scale-95"
             >
               <ChevronUp className="w-5 h-5" />
