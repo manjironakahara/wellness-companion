@@ -89,7 +89,12 @@ export function useAppState() {
   const recognitionRef = useRef<any>(null);
   const voiceSupported = useRef(false);
   const finalizedTextRef = useRef("");
-  const acceptResultsRef = useRef(true);
+  const stepRef = useRef(0);
+
+  // Keep stepRef in sync
+  useEffect(() => {
+    stepRef.current = onboardingStep;
+  }, [onboardingStep]);
 
   useEffect(() => {
     if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
@@ -99,8 +104,12 @@ export function useAppState() {
       recognition.interimResults = true;
       voiceSupported.current = true;
 
+      let activeStep = -1; // tracks which step this recording session belongs to
+
       recognition.onresult = (event: any) => {
-        if (!acceptResultsRef.current) return;
+        // Ignore results from a previous question's session
+        if (activeStep !== stepRef.current) return;
+
         let interim = "";
         let final = "";
         for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -119,6 +128,10 @@ export function useAppState() {
 
       recognition.onerror = () => setIsListening(false);
       recognition.onend = () => setIsListening(false);
+
+      // Expose a way to set activeStep from outside
+      (recognition as any)._setActiveStep = (s: number) => { activeStep = s; };
+
       recognitionRef.current = recognition;
     }
   }, []);
@@ -129,20 +142,24 @@ export function useAppState() {
       recognitionRef.current?.stop();
       setIsListening(false);
     } else {
-      acceptResultsRef.current = true;
       finalizedTextRef.current = transcript;
-      try {
-        recognitionRef.current?.start();
-        setIsListening(true);
-      } catch {
-        // already started
-      }
+      // Mark this recording session for the current step
+      recognitionRef.current?._setActiveStep?.(stepRef.current);
+      const tryStart = (retries = 3) => {
+        try {
+          recognitionRef.current?.start();
+          setIsListening(true);
+        } catch {
+          if (retries > 0) {
+            setTimeout(() => tryStart(retries - 1), 150);
+          }
+        }
+      };
+      tryStart();
     }
   }, [isListening, transcript]);
 
   const handleOnboardingNext = useCallback(() => {
-    // Gate off late-arriving speech results immediately
-    acceptResultsRef.current = false;
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
@@ -160,7 +177,6 @@ export function useAppState() {
 
   const handleOnboardingBack = useCallback(() => {
     if (onboardingStep > 0) {
-      acceptResultsRef.current = false;
       if (isListening) {
         recognitionRef.current?.stop();
         setIsListening(false);
