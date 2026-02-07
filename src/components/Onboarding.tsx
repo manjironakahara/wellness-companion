@@ -1,4 +1,5 @@
-import { Mic, MicOff } from "lucide-react";
+import { useState } from "react";
+import { Mic, MicOff, Keyboard } from "lucide-react";
 import { onboardingQuestions } from "@/hooks/useAppState";
 
 interface OnboardingProps {
@@ -11,6 +12,7 @@ interface OnboardingProps {
 }
 
 const Onboarding = ({ step, transcript, setTranscript, isListening, toggleListening, onNext }: OnboardingProps) => {
+  const [showTextInput, setShowTextInput] = useState(false);
   const current = onboardingQuestions[step];
   const totalSteps = onboardingQuestions.length;
 
@@ -66,22 +68,33 @@ const Onboarding = ({ step, transcript, setTranscript, isListening, toggleListen
         )}
       </div>
 
-      {/* Text input fallback */}
-      <div className="space-y-2">
-        <label className="block text-sm text-muted-foreground">Or type your answer</label>
-        <textarea
-          value={transcript}
-          onChange={(e) => setTranscript(e.target.value)}
-          placeholder={current.placeholder}
-          className="w-full min-h-[100px] p-4 border border-input rounded-xl text-base font-sans resize-y outline-none focus:border-primary transition-colors bg-card"
-        />
+      {/* Type your answer toggle */}
+      {!showTextInput ? (
         <button
-          onClick={onNext}
-          className="w-full rounded-full px-8 py-4 text-base font-medium bg-foreground text-card shadow-button transition-all active:scale-[0.98]"
+          onClick={() => setShowTextInput(true)}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          Continue
+          <Keyboard className="w-4 h-4" />
+          Or type your answer
         </button>
-      </div>
+      ) : (
+        <div className="space-y-2 animate-fade-in">
+          <label className="block text-sm text-muted-foreground">Type your answer</label>
+          <textarea
+            value={transcript}
+            onChange={(e) => setTranscript(e.target.value)}
+            placeholder={current.placeholder}
+            autoFocus
+            className="w-full min-h-[100px] p-4 border border-input rounded-xl text-base font-sans resize-y outline-none focus:border-primary transition-colors bg-card"
+          />
+          <button
+            onClick={onNext}
+            className="w-full rounded-full px-8 py-4 text-base font-medium bg-foreground text-card shadow-button transition-all active:scale-[0.98]"
+          >
+            Continue
+          </button>
+        </div>
+      )}
     </div>
   );
 };
