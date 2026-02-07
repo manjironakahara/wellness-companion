@@ -184,6 +184,11 @@
   backdrop-filter: blur(10px);
 }
 
+.onboarding-textarea option {
+  background: hsl(215 28% 17%);
+  color: hsl(0 0% 100%);
+}
+
 .onboarding-textarea::placeholder {
   color: hsl(0 0% 100% / 0.4);
 }
