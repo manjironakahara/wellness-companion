@@ -46,7 +46,7 @@ const Onboarding = ({ step, transcript, setTranscript, isListening, toggleListen
       <div className={`flex-1 flex flex-col items-center justify-center px-6 relative z-10 ${step === 0 ? "" : "-mt-10"}`}>
         {/* Step indicator */}
         <span className="text-sm tracking-widest uppercase mb-8 onboarding-label">
-          {step + 1} / {totalSteps}
+          Question {step + 1}
         </span>
 
         {/* Question */}
