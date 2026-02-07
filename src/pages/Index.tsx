@@ -1,14 +1,87 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useAppState } from "@/hooks/useAppState";
+import Onboarding from "@/components/Onboarding";
+import StatsForm from "@/components/StatsForm";
+import Recommendations from "@/components/Recommendations";
+import CalendarView from "@/components/CalendarView";
+import ChatView from "@/components/ChatView";
+import Dashboard from "@/components/Dashboard";
 
 const Index = () => {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
-  );
+  const {
+    currentView, setCurrentView,
+    onboardingStep,
+    isListening, toggleListening,
+    transcript, setTranscript,
+    useMetric, setUseMetric,
+    userData, setUserData,
+    recommendations,
+    weeklyPlan,
+    completedActivities, toggleActivity,
+    chatHistory, sendChat,
+    handleOnboardingNext,
+    generateRecommendations,
+  } = useAppState();
+
+  switch (currentView) {
+    case "onboarding":
+      return (
+        <Onboarding
+          step={onboardingStep}
+          transcript={transcript}
+          setTranscript={setTranscript}
+          isListening={isListening}
+          toggleListening={toggleListening}
+          onNext={handleOnboardingNext}
+        />
+      );
+    case "stats":
+      return (
+        <StatsForm
+          useMetric={useMetric}
+          setUseMetric={setUseMetric}
+          userData={userData}
+          setUserData={setUserData}
+          onSubmit={generateRecommendations}
+        />
+      );
+    case "recommendations":
+      return (
+        <Recommendations
+          recommendations={recommendations}
+          onViewCalendar={() => setCurrentView("calendar")}
+          onAdjustPlan={() => setCurrentView("chat")}
+        />
+      );
+    case "calendar":
+      return (
+        <CalendarView
+          weeklyPlan={weeklyPlan}
+          completedActivities={completedActivities}
+          toggleActivity={toggleActivity}
+          setCurrentView={setCurrentView}
+        />
+      );
+    case "chat":
+      return (
+        <ChatView
+          chatHistory={chatHistory}
+          sendChat={sendChat}
+          isListening={isListening}
+          toggleListening={toggleListening}
+          setCurrentView={setCurrentView}
+        />
+      );
+    case "dashboard":
+      return (
+        <Dashboard
+          weeklyPlan={weeklyPlan}
+          completedActivities={completedActivities}
+          setCurrentView={setCurrentView}
+        />
+      );
+    default:
+      return null;
+  }
 };
 
 export default Index;
