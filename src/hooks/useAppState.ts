@@ -251,7 +251,7 @@ export function useAppState() {
     });
   }, []);
 
-  const parsePlanUpdate = useCallback((text: string): { cleanText: string; activities: Activity[] | null } => {
+  const parsePlanUpdate = (text: string): { cleanText: string; activities: Activity[] | null } => {
     const match = text.match(/\[PLAN_UPDATE\]\s*([\s\S]*?)\s*\[\/PLAN_UPDATE\]/);
     if (!match) return { cleanText: text, activities: null };
 
@@ -265,7 +265,7 @@ export function useAppState() {
       console.error("Failed to parse plan update:", e);
     }
     return { cleanText, activities: null };
-  }, []);
+  };
 
   const sendChat = useCallback(async (message: string) => {
     if (!message.trim()) return;
@@ -388,7 +388,7 @@ export function useAppState() {
         { role: "assistant", content: "Sorry, I couldn't process that right now. Please try again." },
       ]);
     }
-  }, [chatHistory, userData, weeklyPlan, parsePlanUpdate]);
+  }, [chatHistory, userData, weeklyPlan]);
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
