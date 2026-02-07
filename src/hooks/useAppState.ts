@@ -89,6 +89,7 @@ export function useAppState() {
   const recognitionRef = useRef<any>(null);
   const voiceSupported = useRef(false);
   const finalizedTextRef = useRef("");
+  const acceptResultsRef = useRef(true);
 
   useEffect(() => {
     if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
@@ -99,6 +100,7 @@ export function useAppState() {
       voiceSupported.current = true;
 
       recognition.onresult = (event: any) => {
+        if (!acceptResultsRef.current) return;
         let interim = "";
         let final = "";
         for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -127,6 +129,7 @@ export function useAppState() {
       recognitionRef.current?.stop();
       setIsListening(false);
     } else {
+      acceptResultsRef.current = true;
       finalizedTextRef.current = transcript;
       try {
         recognitionRef.current?.start();
@@ -138,6 +141,12 @@ export function useAppState() {
   }, [isListening, transcript]);
 
   const handleOnboardingNext = useCallback(() => {
+    // Gate off late-arriving speech results immediately
+    acceptResultsRef.current = false;
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    }
     const key = onboardingQuestions[onboardingStep].key;
     setUserData(prev => ({ ...prev, [key]: transcript.trim() }));
     setTranscript("");
@@ -147,10 +156,15 @@ export function useAppState() {
     } else {
       setCurrentView("stats");
     }
-  }, [onboardingStep, transcript]);
+  }, [onboardingStep, transcript, isListening]);
 
   const handleOnboardingBack = useCallback(() => {
     if (onboardingStep > 0) {
+      acceptResultsRef.current = false;
+      if (isListening) {
+        recognitionRef.current?.stop();
+        setIsListening(false);
+      }
       const key = onboardingQuestions[onboardingStep].key;
       setUserData(prev => ({ ...prev, [key]: transcript.trim() }));
       const prevStep = onboardingStep - 1;
@@ -160,7 +174,7 @@ export function useAppState() {
       setTranscript(prevAnswer);
       finalizedTextRef.current = prevAnswer;
     }
-  }, [onboardingStep, transcript, userData]);
+  }, [onboardingStep, transcript, userData, isListening]);
 
   const generateRecommendations = useCallback(async () => {
     setIsGenerating(true);

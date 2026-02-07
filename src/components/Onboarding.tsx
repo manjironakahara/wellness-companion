@@ -99,6 +99,16 @@ const Onboarding = ({ step, transcript, setTranscript, isListening, toggleListen
 
         {/* Action buttons */}
         <div className="flex items-center justify-center gap-3">
+          {/* Back button */}
+          {step > 0 && (
+            <button
+              onClick={onBack}
+              className="w-14 h-14 rounded-full flex items-center justify-center onboarding-btn-secondary transition-all active:scale-95"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
+
           {/* Mic button */}
           <button
             onClick={toggleListening}
@@ -134,10 +144,7 @@ const Onboarding = ({ step, transcript, setTranscript, isListening, toggleListen
           {/* Continue / Submit */}
           {transcript && (
             <button
-              onClick={() => {
-                if (isListening) toggleListening();
-                onNext();
-              }}
+              onClick={onNext}
               className="w-14 h-14 rounded-full flex items-center justify-center onboarding-btn-continue transition-all active:scale-95"
             >
               <ChevronUp className="w-5 h-5" />
