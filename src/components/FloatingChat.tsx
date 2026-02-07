@@ -1,25 +1,35 @@
 import { useState, useRef, useEffect } from "react";
 import { Mic, MicOff, Send, Keyboard, X, MessageCircle } from "lucide-react";
 import type { ChatMessage } from "@/hooks/useAppState";
+import { useChatSpeech } from "@/hooks/useChatSpeech";
 
 interface FloatingChatProps {
   chatHistory: ChatMessage[];
   sendChat: (msg: string) => void;
-  isListening: boolean;
-  toggleListening: () => void;
 }
 
-const FloatingChat = ({ chatHistory, sendChat, isListening, toggleListening }: FloatingChatProps) => {
+const FloatingChat = ({ chatHistory, sendChat }: FloatingChatProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showTextInput, setShowTextInput] = useState(false);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { isListening, transcript, toggleListening, clearTranscript, supported } = useChatSpeech();
+  const wasListeningRef = useRef(false);
 
   useEffect(() => {
     if (isOpen) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [chatHistory, isOpen]);
+
+  // Auto-send when voice recording stops and there's a transcript
+  useEffect(() => {
+    if (wasListeningRef.current && !isListening && transcript.trim()) {
+      sendChat(transcript.trim());
+      clearTranscript();
+    }
+    wasListeningRef.current = isListening;
+  }, [isListening, transcript, sendChat, clearTranscript]);
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -99,6 +109,13 @@ const FloatingChat = ({ chatHistory, sendChat, isListening, toggleListening }: F
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Live transcript */}
+      {isListening && transcript && (
+        <div className="px-4 py-2" style={{ borderTop: "1px solid hsl(0 0% 100% / 0.05)" }}>
+          <p className="text-sm italic onboarding-transcript">{transcript}</p>
+        </div>
+      )}
+
       {/* Input area */}
       <div className="px-4 py-3 flex items-center gap-2" style={{ borderTop: "1px solid hsl(0 0% 100% / 0.1)" }}>
         {showTextInput ? (
@@ -121,14 +138,16 @@ const FloatingChat = ({ chatHistory, sendChat, isListening, toggleListening }: F
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center gap-3">
-            <button
-              onClick={toggleListening}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-95 ${
-                isListening ? "onboarding-btn-recording" : "onboarding-btn-mic"
-              }`}
-            >
-              {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-            </button>
+            {supported && (
+              <button
+                onClick={toggleListening}
+                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all active:scale-95 ${
+                  isListening ? "onboarding-btn-recording" : "onboarding-btn-mic"
+                }`}
+              >
+                {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              </button>
+            )}
 
             {isListening && (
               <div className="flex items-end gap-[3px] h-5">
