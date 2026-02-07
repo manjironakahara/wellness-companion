@@ -53,6 +53,10 @@
     --shadow-button: 0 4px 12px rgba(0, 0, 0, 0.1);
     --shadow-nav: 0 -4px 20px rgba(0, 0, 0, 0.08);
 
+    /* Onboarding immersive */
+    --onboarding-bg: linear-gradient(135deg, hsl(174 70% 38%) 0%, hsl(170 60% 48%) 30%, hsl(166 50% 55%) 70%, hsl(174 75% 35%) 100%);
+    --onboarding-glow: radial-gradient(ellipse at center, hsl(174 85% 45% / 0.6) 0%, hsl(170 70% 40% / 0.3) 40%, transparent 70%);
+
     /* Insight card */
     --insight-bg: linear-gradient(135deg, hsl(270 100% 98%) 0%, hsl(330 100% 94%) 100%);
     --insight-border: 270 80% 88%;
@@ -125,6 +129,108 @@
     background: var(--insight-bg);
     border-color: hsl(var(--insight-border));
   }
+}
+
+/* Onboarding immersive styles */
+.onboarding-screen {
+  background: var(--onboarding-bg);
+}
+
+.onboarding-glow {
+  position: absolute;
+  inset: 0;
+  background: var(--onboarding-glow);
+  pointer-events: none;
+}
+
+.onboarding-label {
+  color: hsl(0 0% 100% / 0.7);
+}
+
+.onboarding-question {
+  color: hsl(0 0% 100%);
+}
+
+.onboarding-transcript {
+  color: hsl(0 0% 100% / 0.85);
+}
+
+.onboarding-helper {
+  color: hsl(0 0% 100% / 0.6);
+}
+
+.onboarding-progress-track {
+  background: hsl(0 0% 100% / 0.2);
+}
+
+.onboarding-progress-fill {
+  background: hsl(0 0% 100% / 0.8);
+}
+
+.onboarding-textarea {
+  background: hsl(0 0% 100% / 0.15);
+  border: 1px solid hsl(0 0% 100% / 0.2);
+  color: hsl(0 0% 100%);
+  backdrop-filter: blur(10px);
+}
+
+.onboarding-textarea::placeholder {
+  color: hsl(0 0% 100% / 0.4);
+}
+
+.onboarding-textarea:focus {
+  border-color: hsl(0 0% 100% / 0.4);
+}
+
+.onboarding-btn-mic {
+  background: hsl(0 0% 100% / 0.2);
+  color: hsl(0 0% 100%);
+  backdrop-filter: blur(10px);
+}
+
+.onboarding-btn-mic:hover {
+  background: hsl(0 0% 100% / 0.3);
+}
+
+.onboarding-btn-recording {
+  background: hsl(0 84% 60% / 0.8);
+  color: hsl(0 0% 100%);
+}
+
+.onboarding-btn-continue {
+  background: hsl(0 0% 100% / 0.9);
+  color: hsl(174 84% 32%);
+}
+
+.onboarding-btn-continue:hover {
+  background: hsl(0 0% 100%);
+}
+
+.onboarding-btn-secondary {
+  background: hsl(0 0% 100% / 0.12);
+  color: hsl(0 0% 100% / 0.7);
+  backdrop-filter: blur(10px);
+}
+
+.onboarding-btn-secondary:hover {
+  background: hsl(0 0% 100% / 0.2);
+}
+
+.onboarding-btn-active {
+  background: hsl(0 0% 100% / 0.25);
+  color: hsl(0 0% 100%);
+  backdrop-filter: blur(10px);
+}
+
+/* Audio bars animation */
+.onboarding-bar {
+  background: hsl(0 0% 100% / 0.7);
+  animation: audioBar 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes audioBar {
+  0% { height: 6px; }
+  100% { height: 20px; }
 }
 
 @keyframes fadeIn {
