@@ -97,8 +97,6 @@ const Index = () => {
         <FloatingChat
           chatHistory={chatHistory}
           sendChat={sendChat}
-          isListening={isListening}
-          toggleListening={toggleListening}
         />
       )}
     </>

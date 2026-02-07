@@ -251,6 +251,22 @@ export function useAppState() {
     });
   }, []);
 
+  const parsePlanUpdate = useCallback((text: string): { cleanText: string; activities: Activity[] | null } => {
+    const match = text.match(/\[PLAN_UPDATE\]\s*([\s\S]*?)\s*\[\/PLAN_UPDATE\]/);
+    if (!match) return { cleanText: text, activities: null };
+
+    const cleanText = text.replace(/\[PLAN_UPDATE\][\s\S]*?\[\/PLAN_UPDATE\]/, "").trim();
+    try {
+      const parsed = JSON.parse(match[1]);
+      if (parsed.activities && Array.isArray(parsed.activities)) {
+        return { cleanText, activities: parsed.activities };
+      }
+    } catch (e) {
+      console.error("Failed to parse plan update:", e);
+    }
+    return { cleanText, activities: null };
+  }, []);
+
   const sendChat = useCallback(async (message: string) => {
     if (!message.trim()) return;
     
@@ -288,6 +304,19 @@ export function useAppState() {
       const decoder = new TextDecoder();
       let textBuffer = "";
 
+      const processContent = (content: string) => {
+        assistantSoFar += content;
+        // Strip plan update block from displayed text
+        const displayText = assistantSoFar.replace(/\[PLAN_UPDATE\][\s\S]*?(\[\/PLAN_UPDATE\])?$/, "").trim();
+        setChatHistory(prev => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant") {
+            return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: displayText } : m));
+          }
+          return [...prev, { role: "assistant", content: displayText }];
+        });
+      };
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -308,16 +337,7 @@ export function useAppState() {
           try {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) {
-              assistantSoFar += content;
-              setChatHistory(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.role === "assistant") {
-                  return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
-                }
-                return [...prev, { role: "assistant", content: assistantSoFar }];
-              });
-            }
+            if (content) processContent(content);
           } catch {
             textBuffer = line + "\n" + textBuffer;
             break;
@@ -337,18 +357,24 @@ export function useAppState() {
           try {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) {
-              assistantSoFar += content;
-              setChatHistory(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.role === "assistant") {
-                  return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
-                }
-                return [...prev, { role: "assistant", content: assistantSoFar }];
-              });
-            }
+            if (content) processContent(content);
           } catch { /* ignore partial */ }
         }
+      }
+
+      // After streaming is done, check for plan updates
+      const { cleanText, activities } = parsePlanUpdate(assistantSoFar);
+      if (activities) {
+        setWeeklyPlan(activities);
+        toast({ title: "Plan updated!", description: "Your fitness plan has been adjusted by AI Coach." });
+        // Update displayed message to clean version
+        setChatHistory(prev => {
+          const last = prev[prev.length - 1];
+          if (last?.role === "assistant") {
+            return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: cleanText } : m));
+          }
+          return prev;
+        });
       }
     } catch (e: any) {
       console.error("Chat error:", e);
@@ -362,7 +388,7 @@ export function useAppState() {
         { role: "assistant", content: "Sorry, I couldn't process that right now. Please try again." },
       ]);
     }
-  }, [chatHistory, userData, weeklyPlan]);
+  }, [chatHistory, userData, weeklyPlan, parsePlanUpdate]);
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut();
