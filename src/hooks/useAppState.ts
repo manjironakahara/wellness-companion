@@ -82,7 +82,15 @@ export function useAppState() {
           if (event.results[i].isFinal) final += t + " ";
           else interim += t;
         }
-        setTranscript(final || interim);
+        if (final) {
+          setTranscript(prev => (prev + final).trim() + " ");
+        } else if (interim) {
+          // Show interim after any existing finalized text
+          setTranscript(prev => {
+            const base = prev.replace(/\s+$/, "");
+            return base ? base + " " + interim : interim;
+          });
+        }
       };
 
       recognition.onerror = () => setIsListening(false);
@@ -109,7 +117,7 @@ export function useAppState() {
 
   const handleOnboardingNext = useCallback(() => {
     const key = onboardingQuestions[onboardingStep].key;
-    setUserData(prev => ({ ...prev, [key]: transcript }));
+    setUserData(prev => ({ ...prev, [key]: transcript.trim() }));
     setTranscript("");
     if (onboardingStep < onboardingQuestions.length - 1) {
       setOnboardingStep(prev => prev + 1);
@@ -117,6 +125,19 @@ export function useAppState() {
       setCurrentView("stats");
     }
   }, [onboardingStep, transcript]);
+
+  const handleOnboardingBack = useCallback(() => {
+    if (onboardingStep > 0) {
+      // Save current answer first
+      const key = onboardingQuestions[onboardingStep].key;
+      setUserData(prev => ({ ...prev, [key]: transcript.trim() }));
+      const prevStep = onboardingStep - 1;
+      const prevKey = onboardingQuestions[prevStep].key;
+      setOnboardingStep(prevStep);
+      // Load previous answer into transcript
+      setTranscript(userData[prevKey] || "");
+    }
+  }, [onboardingStep, transcript, userData]);
 
   const generateRecommendations = useCallback(() => {
     setRecommendations({
@@ -177,6 +198,7 @@ export function useAppState() {
     completedActivities, toggleActivity,
     chatHistory, sendChat,
     handleOnboardingNext,
+    handleOnboardingBack,
     generateRecommendations,
     voiceSupported: voiceSupported.current,
   };

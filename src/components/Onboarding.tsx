@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Mic, MicOff, Keyboard, ChevronUp } from "lucide-react";
+import { Mic, MicOff, Keyboard, ChevronUp, ChevronLeft } from "lucide-react";
 import { onboardingQuestions } from "@/hooks/useAppState";
 
 interface OnboardingProps {
@@ -9,9 +9,10 @@ interface OnboardingProps {
   isListening: boolean;
   toggleListening: () => void;
   onNext: () => void;
+  onBack: () => void;
 }
 
-const Onboarding = ({ step, transcript, setTranscript, isListening, toggleListening, onNext }: OnboardingProps) => {
+const Onboarding = ({ step, transcript, setTranscript, isListening, toggleListening, onNext, onBack }: OnboardingProps) => {
   const [showTextInput, setShowTextInput] = useState(false);
   const [animateQuestion, setAnimateQuestion] = useState(false);
   const current = onboardingQuestions[step];
@@ -29,11 +30,23 @@ const Onboarding = ({ step, transcript, setTranscript, isListening, toggleListen
       {/* Radial glow background */}
       <div className="onboarding-glow" />
 
+      {/* Top bar with back button */}
+      {step > 0 && (
+        <div className="relative z-10 pt-6 px-6">
+          <button
+            onClick={onBack}
+            className="w-10 h-10 rounded-full flex items-center justify-center onboarding-btn-secondary transition-all active:scale-95"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
       {/* Main centered content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 relative z-10">
-        {/* Step label */}
+      <div className={`flex-1 flex flex-col items-center justify-center px-6 relative z-10 ${step === 0 ? "" : "-mt-10"}`}>
+        {/* Step indicator */}
         <span className="text-sm tracking-widest uppercase mb-8 onboarding-label">
-          Question {step + 1}
+          {step + 1} / {totalSteps}
         </span>
 
         {/* Question */}
@@ -46,7 +59,7 @@ const Onboarding = ({ step, transcript, setTranscript, isListening, toggleListen
         </h1>
 
         {/* Transcript area */}
-        {transcript && (
+        {transcript && !showTextInput && (
           <p className="mt-8 text-lg text-center max-w-md onboarding-transcript animate-fade-in leading-relaxed">
             {transcript}
           </p>
@@ -82,9 +95,6 @@ const Onboarding = ({ step, transcript, setTranscript, isListening, toggleListen
               style={{ width: `${((step + 1) / totalSteps) * 100}%` }}
             />
           </div>
-          <p className="text-xs text-center mt-2 onboarding-helper">
-            {step + 1} of {totalSteps}
-          </p>
         </div>
 
         {/* Action buttons */}

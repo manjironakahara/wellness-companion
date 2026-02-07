@@ -19,6 +19,7 @@ const Index = () => {
     completedActivities, toggleActivity,
     chatHistory, sendChat,
     handleOnboardingNext,
+    handleOnboardingBack,
     generateRecommendations,
   } = useAppState();
 
@@ -32,6 +33,7 @@ const Index = () => {
           isListening={isListening}
           toggleListening={toggleListening}
           onNext={handleOnboardingNext}
+          onBack={handleOnboardingBack}
         />
       );
     case "stats":
