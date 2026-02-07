@@ -1,4 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 export type AppView = "onboarding" | "stats" | "recommendations" | "calendar" | "chat" | "dashboard";
 
@@ -62,6 +64,7 @@ export function useAppState() {
   const [weeklyPlan, setWeeklyPlan] = useState<Activity[]>([]);
   const [completedActivities, setCompletedActivities] = useState<Set<string>>(new Set());
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const recognitionRef = useRef<any>(null);
   const voiceSupported = useRef(false);
@@ -87,7 +90,6 @@ export function useAppState() {
           finalizedTextRef.current = (finalizedTextRef.current + final).trim() + " ";
           setTranscript(finalizedTextRef.current);
         } else if (interim) {
-          // Show latest interim after the finalized base — don't stack interims
           const base = finalizedTextRef.current.trim();
           setTranscript(base ? base + " " + interim : interim);
         }
@@ -105,7 +107,7 @@ export function useAppState() {
       recognitionRef.current?.stop();
       setIsListening(false);
     } else {
-      finalizedTextRef.current = transcript; // preserve any existing text as the base
+      finalizedTextRef.current = transcript;
       try {
         recognitionRef.current?.start();
         setIsListening(true);
@@ -140,29 +142,55 @@ export function useAppState() {
     }
   }, [onboardingStep, transcript, userData]);
 
-  const generateRecommendations = useCallback(() => {
-    setRecommendations({
-      goals: [
-        `${userData.goal || "Improve fitness"} — target measurable progress in 4 weeks`,
-        "Build consistent exercise habit — complete 80% of scheduled workouts",
-        "Improve energy levels through regular movement and better sleep",
-      ],
-      insights: `Based on your routine, I've scheduled workouts during your free time blocks. ${
-        userData.barriers.toLowerCase().includes("time")
-          ? "To address time constraints, I've kept sessions under 30 minutes."
-          : "I've balanced intensity across the week for sustainable progress."
-      }`,
-    });
-
-    setWeeklyPlan([
-      { time: "07:00", duration: 30, type: "workout", name: "Morning Cardio", description: "20 min jog + 10 min stretching", color: "hsl(239 84% 67%)" },
-      { time: "12:30", duration: 45, type: "meal", name: "Lunch Break", description: "Healthy balanced meal", color: "hsl(160 84% 39%)" },
-      { time: "18:00", duration: 45, type: "workout", name: "Strength Training", description: "Upper body focus", color: "hsl(38 92% 50%)" },
-      { time: "22:00", duration: 30, type: "stretch", name: "Evening Wind Down", description: "Light stretching & breathing", color: "hsl(258 90% 66%)" },
-    ]);
-
+  const generateRecommendations = useCallback(async () => {
+    setIsGenerating(true);
     setCurrentView("recommendations");
-  }, [userData]);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-plan", {
+        body: { userData: { ...userData, useMetric } },
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setRecommendations({
+        goals: data.goals || [],
+        insights: data.insights || "",
+      });
+
+      if (data.weeklyPlan && Array.isArray(data.weeklyPlan)) {
+        setWeeklyPlan(data.weeklyPlan);
+      }
+    } catch (e: any) {
+      console.error("Failed to generate plan:", e);
+      toast({
+        title: "Error generating plan",
+        description: e.message || "Please try again.",
+        variant: "destructive",
+      });
+      // Fallback to basic plan
+      setRecommendations({
+        goals: [
+          `${userData.goal || "Improve fitness"} — target measurable progress in 4 weeks`,
+          "Build consistent exercise habit — complete 80% of scheduled workouts",
+          "Improve energy levels through regular movement and better sleep",
+        ],
+        insights: "We couldn't reach the AI coach right now. Here's a basic plan to get you started.",
+      });
+      setWeeklyPlan([
+        { time: "07:00", duration: 30, type: "workout", name: "Morning Cardio", description: "20 min jog + 10 min stretching", color: "hsl(239 84% 67%)" },
+        { time: "12:30", duration: 45, type: "meal", name: "Lunch Break", description: "Healthy balanced meal", color: "hsl(160 84% 39%)" },
+        { time: "18:00", duration: 45, type: "workout", name: "Strength Training", description: "Upper body focus", color: "hsl(38 92% 50%)" },
+        { time: "22:00", duration: 30, type: "stretch", name: "Evening Wind Down", description: "Light stretching & breathing", color: "hsl(258 90% 66%)" },
+      ]);
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [userData, useMetric]);
 
   const toggleActivity = useCallback((name: string) => {
     setCompletedActivities(prev => {
@@ -173,19 +201,118 @@ export function useAppState() {
     });
   }, []);
 
-  const sendChat = useCallback((message: string) => {
+  const sendChat = useCallback(async (message: string) => {
     if (!message.trim()) return;
-    setChatHistory(prev => [...prev, { role: "user", content: message }]);
-    setTimeout(() => {
+    
+    const userMsg: ChatMessage = { role: "user", content: message };
+    setChatHistory(prev => [...prev, userMsg]);
+
+    let assistantSoFar = "";
+    const allMessages = [...chatHistory, userMsg];
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            messages: allMessages.map(m => ({ role: m.role, content: m.content })),
+            userData,
+            weeklyPlan,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Request failed with status ${response.status}`);
+      }
+
+      if (!response.body) throw new Error("No response body");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              assistantSoFar += content;
+              setChatHistory(prev => {
+                const last = prev[prev.length - 1];
+                if (last?.role === "assistant") {
+                  return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
+                }
+                return [...prev, { role: "assistant", content: assistantSoFar }];
+              });
+            }
+          } catch {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+
+      // Final flush
+      if (textBuffer.trim()) {
+        for (let raw of textBuffer.split("\n")) {
+          if (!raw) continue;
+          if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+          if (raw.startsWith(":") || raw.trim() === "") continue;
+          if (!raw.startsWith("data: ")) continue;
+          const jsonStr = raw.slice(6).trim();
+          if (jsonStr === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              assistantSoFar += content;
+              setChatHistory(prev => {
+                const last = prev[prev.length - 1];
+                if (last?.role === "assistant") {
+                  return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
+                }
+                return [...prev, { role: "assistant", content: assistantSoFar }];
+              });
+            }
+          } catch { /* ignore partial */ }
+        }
+      }
+    } catch (e: any) {
+      console.error("Chat error:", e);
+      toast({
+        title: "Chat error",
+        description: e.message || "Failed to get response",
+        variant: "destructive",
+      });
       setChatHistory(prev => [
         ...prev,
-        {
-          role: "assistant",
-          content: "Got it — I've updated your plan based on your feedback. I've moved your evening workouts 30 minutes earlier and reduced intensity by 15%.",
-        },
+        { role: "assistant", content: "Sorry, I couldn't process that right now. Please try again." },
       ]);
-    }, 1000);
-  }, []);
+    }
+  }, [chatHistory, userData, weeklyPlan]);
 
   return {
     currentView, setCurrentView,
@@ -201,6 +328,7 @@ export function useAppState() {
     handleOnboardingNext,
     handleOnboardingBack,
     generateRecommendations,
+    isGenerating,
     voiceSupported: voiceSupported.current,
   };
 }

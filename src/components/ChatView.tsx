@@ -13,6 +13,7 @@ interface ChatViewProps {
 const ChatView = ({ chatHistory, sendChat, isListening, toggleListening, setCurrentView }: ChatViewProps) => {
   const [input, setInput] = useState("");
   const [showTextInput, setShowTextInput] = useState(false);
+  const [voiceInput, setVoiceInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -20,9 +21,17 @@ const ChatView = ({ chatHistory, sendChat, isListening, toggleListening, setCurr
   }, [chatHistory]);
 
   const handleSend = () => {
-    if (!input.trim()) return;
-    sendChat(input);
+    const msg = showTextInput ? input : voiceInput;
+    if (!msg.trim()) return;
+    sendChat(msg);
     setInput("");
+    setVoiceInput("");
+  };
+
+  const handleVoiceSend = () => {
+    if (!voiceInput.trim()) return;
+    sendChat(voiceInput);
+    setVoiceInput("");
   };
 
   return (
@@ -53,9 +62,7 @@ const ChatView = ({ chatHistory, sendChat, isListening, toggleListening, setCurr
             <div
               key={idx}
               className={`max-w-[80%] px-4 py-3 rounded-2xl mb-3 leading-relaxed text-[15px] ${
-                msg.role === "user"
-                  ? "ml-auto"
-                  : ""
+                msg.role === "user" ? "ml-auto" : ""
               }`}
               style={
                 msg.role === "user"
@@ -132,10 +139,10 @@ const ChatView = ({ chatHistory, sendChat, isListening, toggleListening, setCurr
             </div>
           )}
 
-          {/* Send voice (when there's input from voice) */}
-          {input && !showTextInput && (
+          {/* Send voice input */}
+          {voiceInput && !showTextInput && (
             <button
-              onClick={handleSend}
+              onClick={handleVoiceSend}
               className="w-14 h-14 rounded-full flex items-center justify-center onboarding-btn-continue transition-all active:scale-95"
             >
               <ChevronUp className="w-5 h-5" />

@@ -21,6 +21,7 @@ const Index = () => {
     handleOnboardingNext,
     handleOnboardingBack,
     generateRecommendations,
+    isGenerating,
   } = useAppState();
 
   switch (currentView) {
@@ -50,6 +51,7 @@ const Index = () => {
       return (
         <Recommendations
           recommendations={recommendations}
+          isGenerating={isGenerating}
           onViewCalendar={() => setCurrentView("calendar")}
           onAdjustPlan={() => setCurrentView("chat")}
         />
