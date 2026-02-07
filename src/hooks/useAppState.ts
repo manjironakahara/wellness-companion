@@ -65,6 +65,7 @@ export function useAppState() {
 
   const recognitionRef = useRef<any>(null);
   const voiceSupported = useRef(false);
+  const finalizedTextRef = useRef("");
 
   useEffect(() => {
     if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
@@ -83,13 +84,12 @@ export function useAppState() {
           else interim += t;
         }
         if (final) {
-          setTranscript(prev => (prev + final).trim() + " ");
+          finalizedTextRef.current = (finalizedTextRef.current + final).trim() + " ";
+          setTranscript(finalizedTextRef.current);
         } else if (interim) {
-          // Show interim after any existing finalized text
-          setTranscript(prev => {
-            const base = prev.replace(/\s+$/, "");
-            return base ? base + " " + interim : interim;
-          });
+          // Show latest interim after the finalized base — don't stack interims
+          const base = finalizedTextRef.current.trim();
+          setTranscript(base ? base + " " + interim : interim);
         }
       };
 
@@ -105,7 +105,7 @@ export function useAppState() {
       recognitionRef.current?.stop();
       setIsListening(false);
     } else {
-      setTranscript("");
+      finalizedTextRef.current = transcript; // preserve any existing text as the base
       try {
         recognitionRef.current?.start();
         setIsListening(true);
@@ -113,12 +113,13 @@ export function useAppState() {
         // already started
       }
     }
-  }, [isListening]);
+  }, [isListening, transcript]);
 
   const handleOnboardingNext = useCallback(() => {
     const key = onboardingQuestions[onboardingStep].key;
     setUserData(prev => ({ ...prev, [key]: transcript.trim() }));
     setTranscript("");
+    finalizedTextRef.current = "";
     if (onboardingStep < onboardingQuestions.length - 1) {
       setOnboardingStep(prev => prev + 1);
     } else {
@@ -128,14 +129,14 @@ export function useAppState() {
 
   const handleOnboardingBack = useCallback(() => {
     if (onboardingStep > 0) {
-      // Save current answer first
       const key = onboardingQuestions[onboardingStep].key;
       setUserData(prev => ({ ...prev, [key]: transcript.trim() }));
       const prevStep = onboardingStep - 1;
       const prevKey = onboardingQuestions[prevStep].key;
       setOnboardingStep(prevStep);
-      // Load previous answer into transcript
-      setTranscript(userData[prevKey] || "");
+      const prevAnswer = userData[prevKey] || "";
+      setTranscript(prevAnswer);
+      finalizedTextRef.current = prevAnswer;
     }
   }, [onboardingStep, transcript, userData]);
 
