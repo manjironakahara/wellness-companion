@@ -1,4 +1,4 @@
-import { Calendar, MessageCircle, TrendingUp } from "lucide-react";
+import { Calendar, TrendingUp } from "lucide-react";
 import type { AppView } from "@/hooks/useAppState";
 
 interface BottomNavProps {
@@ -8,7 +8,6 @@ interface BottomNavProps {
 
 const navItems = [
   { view: "calendar" as AppView, icon: Calendar, label: "Calendar" },
-  { view: "chat" as AppView, icon: MessageCircle, label: "Chat" },
   { view: "dashboard" as AppView, icon: TrendingUp, label: "Progress" },
 ];
 

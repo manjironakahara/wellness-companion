@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import type { User, Session } from "@supabase/supabase-js";
 
-export type AppView = "onboarding" | "stats" | "recommendations" | "calendar" | "chat" | "dashboard";
+export type AppView = "onboarding" | "stats" | "auth" | "recommendations" | "calendar" | "chat" | "dashboard";
 
 export interface UserData {
   goal: string;
@@ -49,6 +50,8 @@ export function useAppState() {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [useMetric, setUseMetric] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [userData, setUserData] = useState<UserData>({
     goal: "",
     currentActivity: "",
@@ -65,6 +68,23 @@ export function useAppState() {
   const [completedActivities, setCompletedActivities] = useState<Set<string>>(new Set());
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Auth state listener
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const recognitionRef = useRef<any>(null);
   const voiceSupported = useRef(false);
@@ -314,6 +334,12 @@ export function useAppState() {
     }
   }, [chatHistory, userData, weeklyPlan]);
 
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+  }, []);
+
   return {
     currentView, setCurrentView,
     onboardingStep,
@@ -330,5 +356,6 @@ export function useAppState() {
     generateRecommendations,
     isGenerating,
     voiceSupported: voiceSupported.current,
+    user, session, logout,
   };
 }
