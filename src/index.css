@@ -135,12 +135,12 @@
 .onboarding-screen {
   background: linear-gradient(
     160deg,
-    hsl(174 85% 28%) 0%,
-    hsl(174 75% 36%) 20%,
-    hsl(170 60% 45%) 40%,
-    hsl(166 50% 55%) 60%,
-    hsl(170 55% 50%) 80%,
-    hsl(174 80% 32%) 100%
+    hsl(174 65% 45%) 0%,
+    hsl(172 55% 52%) 20%,
+    hsl(170 50% 58%) 40%,
+    hsl(168 45% 64%) 60%,
+    hsl(170 50% 58%) 80%,
+    hsl(174 60% 48%) 100%
   );
 }
 
@@ -148,8 +148,8 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 50% 40%, hsl(170 90% 60% / 0.35) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 50% 45%, hsl(174 100% 70% / 0.2) 0%, transparent 50%);
+    radial-gradient(ellipse 80% 60% at 50% 40%, hsl(170 80% 75% / 0.35) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 50% 45%, hsl(168 70% 80% / 0.25) 0%, transparent 50%);
   pointer-events: none;
 }
 
