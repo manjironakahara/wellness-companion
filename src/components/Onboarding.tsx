@@ -31,11 +31,10 @@ const Onboarding = ({ step, transcript, setTranscript, isListening, toggleListen
 
       {/* Main centered content */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 relative z-10">
-        {/* Listen label */}
-        <div className="flex items-center gap-2 mb-8 onboarding-label">
-          <Mic className="w-4 h-4" />
-          <span className="text-sm tracking-wide">Listen</span>
-        </div>
+        {/* Step label */}
+        <span className="text-sm tracking-widest uppercase mb-8 onboarding-label">
+          Question {step + 1}
+        </span>
 
         {/* Question */}
         <h1
