@@ -10,7 +10,7 @@ export interface UserData {
   barriers: string;
   weight: string;
   height: string;
-  age: string;
+  birthday: string;
   gender: string;
 }
 
@@ -55,7 +55,7 @@ export function useAppState() {
     barriers: "",
     weight: "",
     height: "",
-    age: "",
+    birthday: "",
     gender: "",
   });
   const [recommendations, setRecommendations] = useState<Recommendations | null>(null);
